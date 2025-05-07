@@ -44,9 +44,15 @@ def make_transform_matrix(
 
 
 def save_transforms_json(
-    output_folder, frame_folder, azimuths_rad, polars_rad, fov_deg=33.8, image_w=576
+    output_folder,
+    frame_folder,
+    azimuths_rad,
+    polars_rad,
+    fov_deg=33.8,
+    image_w=576,
+    image_h=576,
 ):
-    r = 2.0  # radius
+    r = 2.0  # camera radius
     frames = []
 
     for i, (azi, polar) in enumerate(zip(azimuths_rad, polars_rad)):
@@ -64,7 +70,22 @@ def save_transforms_json(
         frames.append(frame)
 
     fov_x_rad = math.radians(fov_deg)
-    out = {"camera_angle_x": fov_x_rad, "frames": frames}
+    focal = 0.5 * image_w / math.tan(fov_x_rad / 2)
+
+    out = {
+        "camera_angle_x": fov_x_rad,
+        "fl_x": focal,
+        "fl_y": focal,
+        "cx": image_w / 2,
+        "cy": image_h / 2,
+        "w": image_w,
+        "h": image_h,
+        "k1": 0.0,
+        "k2": 0.0,
+        "p1": 0.0,
+        "p2": 0.0,
+        "frames": frames,
+    }
 
     with open(os.path.join(output_folder, "transforms.json"), "w") as f:
         json.dump(out, f, indent=4)
