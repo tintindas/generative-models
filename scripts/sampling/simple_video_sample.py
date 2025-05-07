@@ -20,6 +20,55 @@ from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
 from torchvision.transforms import ToTensor
 
+import json
+
+
+def make_transform_matrix(
+    camera_position, target=np.array([0, 0, 0]), up=np.array([0, 0, 1])
+):
+    forward = camera_position - target
+    forward = forward / np.linalg.norm(forward)
+
+    right = np.cross(up, forward)
+    right = right / np.linalg.norm(right)
+
+    true_up = np.cross(forward, right)
+    true_up = true_up / np.linalg.norm(true_up)
+
+    m = np.eye(4)
+    m[0, :3] = right
+    m[1, :3] = true_up
+    m[2, :3] = forward
+    m[:3, 3] = camera_position
+    return m.tolist()
+
+
+def save_transforms_json(
+    output_folder, frame_folder, azimuths_rad, polars_rad, fov_deg=33.8, image_w=576
+):
+    r = 2.0  # radius
+    frames = []
+
+    for i, (azi, polar) in enumerate(zip(azimuths_rad, polars_rad)):
+        x = r * math.sin(polar) * math.cos(azi)
+        y = r * math.sin(polar) * math.sin(azi)
+        z = r * math.cos(polar)
+        cam_pos = np.array([x, y, z])
+
+        transform_matrix = make_transform_matrix(cam_pos)
+
+        frame = {
+            "file_path": f"{Path(frame_folder).name}/frame_{i:03d}.png",
+            "transform_matrix": transform_matrix,
+        }
+        frames.append(frame)
+
+    fov_x_rad = math.radians(fov_deg)
+    out = {"camera_angle_x": fov_x_rad, "frames": frames}
+
+    with open(os.path.join(output_folder, "transforms.json"), "w") as f:
+        json.dump(out, f, indent=4)
+
 
 def sample(
     input_path: str = "assets/test_image.png",  # Can either be image file or folder with image files
@@ -294,6 +343,10 @@ def sample(
                 for frame in vid:
                     out.write(frame[:, :, ::-1])
                 out.release()
+
+                save_transforms_json(
+                    output_folder, frame_folder, azimuths_rad, polars_rad
+                )
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
