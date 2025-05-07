@@ -142,10 +142,10 @@ def sample(
             )
             x, y, w, h = cv2.boundingRect(mask)
             max_size = max(w, h)
-            side_len = (
-                int(max_size / image_frame_ratio)
-                if image_frame_ratio is not None
-                else in_w
+            side_len = max(
+                int(max_size / image_frame_ratio) if image_frame_ratio else max_size,
+                w,
+                h,
             )
             padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
             center = side_len // 2
