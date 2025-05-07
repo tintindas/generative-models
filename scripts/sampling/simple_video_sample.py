@@ -81,15 +81,15 @@ def sample(
         cond_aug = 1e-5
         if isinstance(elevations_deg, float) or isinstance(elevations_deg, int):
             elevations_deg = [elevations_deg] * num_frames
-        assert (
-            len(elevations_deg) == num_frames
-        ), f"Please provide 1 value, or a list of {num_frames} values for elevations_deg! Given {len(elevations_deg)}"
+        assert len(elevations_deg) == num_frames, (
+            f"Please provide 1 value, or a list of {num_frames} values for elevations_deg! Given {len(elevations_deg)}"
+        )
         polars_rad = [np.deg2rad(90 - e) for e in elevations_deg]
         if azimuths_deg is None:
             azimuths_deg = np.linspace(0, 360, num_frames + 1)[1:] % 360
-        assert (
-            len(azimuths_deg) == num_frames
-        ), f"Please provide a list of {num_frames} values for azimuths_deg! Given {len(azimuths_deg)}"
+        assert len(azimuths_deg) == num_frames, (
+            f"Please provide a list of {num_frames} values for azimuths_deg! Given {len(azimuths_deg)}"
+        )
         azimuths_rad = [np.deg2rad((a - azimuths_deg[-1]) % 360) for a in azimuths_deg]
         azimuths_rad[:-1].sort()
     else:
@@ -271,7 +271,29 @@ def sample(
                     .astype(np.uint8)
                 )
                 video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
-                imageio.mimwrite(video_path, vid)
+                # imageio.mimwrite(video_path, vid)
+
+                # Save each frame as image
+                frame_folder = os.path.join(output_folder, f"{base_count:06d}_frames")
+                os.makedirs(frame_folder, exist_ok=True)
+
+                # Save individual frames as images
+                for i, frame in enumerate(vid):
+                    frame_rgb = frame[:, :, ::-1]  # Convert RGB to BGR for OpenCV
+                    frame_path = os.path.join(frame_folder, f"frame_{i:03d}.png")
+                    cv2.imwrite(frame_path, frame_rgb)
+
+                # write video
+                frame0 = vid[0, :, :, :].squeeze()
+                out = cv2.VideoWriter(
+                    video_path,
+                    cv2.VideoWriter_fourcc(*"MP4V"),
+                    20.0,
+                    (frame0.shape[1], frame0.shape[0]),
+                )
+                for frame in vid:
+                    out.write(frame[:, :, ::-1])
+                out.release()
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
