@@ -326,6 +326,11 @@ def sample(
                 frame_folder = os.path.join(output_folder, f"{base_count:06d}_frames")
                 os.makedirs(frame_folder, exist_ok=True)
 
+                if version == "sv3d_p":
+                    save_transforms_json(
+                        output_folder, frame_folder, azimuths_rad, polars_rad
+                    )
+
                 # Save individual frames as images
                 for i, frame in enumerate(vid):
                     frame_rgb = frame[:, :, ::-1]  # Convert RGB to BGR for OpenCV
@@ -343,10 +348,6 @@ def sample(
                 for frame in vid:
                     out.write(frame[:, :, ::-1])
                 out.release()
-
-                save_transforms_json(
-                    output_folder, frame_folder, azimuths_rad, polars_rad
-                )
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
